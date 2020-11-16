@@ -1,0 +1,51 @@
+<%
+const { title, link, shuffle, headless } = opt
+let items, collection
+if (opt.sort || opt.collection_id) {
+  let search
+  if (opt.collection_id) {
+    let res
+    try {
+      res = await _.ecomClient.store({
+        url: `/collections/${opt.collection_id}.json`
+      })
+    } catch (err) {
+      console.error(err)
+    }
+    if (res) {
+      collection = res.data
+      items = []
+      if (Array.isArray(collection.products) && collection.products.length) {
+        search = new _.EcomSearch()
+        search.setProductIds(collection.products)
+      }
+    }
+  } else {
+    search = new _.EcomSearch()
+  }
+
+  if (search) {
+    if (opt.sort) {
+      search.setSortOrder(opt.sort)
+    }
+    if (opt.limit > 0) {
+      search.setPageSize(opt.limit)
+    }
+    if (opt.page >= 2) {
+      search.setPageNumber(opt.page)
+    }
+    await search.fetch()
+    items = search.getItems()
+  }
+} else {
+  const size = opt.limit || 24
+  const offset = opt.page >= 2 ? (opt.page - 1) * size : 0
+  items = _.items.slice(offset, offset + size)
+}
+%>
+
+<div class="collection-shelf my-lg-5">
+  <%- await include('@/sections/inc/products-carousel', {
+    _, opt: { items, collection, title, link, shuffle, headless }
+  }) %>
+</div>
